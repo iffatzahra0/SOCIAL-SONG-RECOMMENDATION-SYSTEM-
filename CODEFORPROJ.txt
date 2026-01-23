@@ -1,0 +1,830 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// DSA PROJECT //
+// BFSBEATS: A SOCIAL SONG RECOMMENDATION SYSTEM //
+// GROUP MEMBERS: IFFAT ZAHRA 501970 //
+// AYESHA GHAFOOR 522175 //
+// HARAM CHISHTI 503090 //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#include <iostream> // For input output stream
+#include <vector> // for dynamic arrays
+#include <string> // for string manipulations
+#include <map>// for maps
+#include <unordered_map> // for hash maps
+#include <queue>// for queue data structure
+#include <stack>//  for stack data structure
+#include <algorithm>// for algorithms like sort
+#include <utility>// for pair
+#include <cstddef>// for size_t
+#include <chrono>// for measuring time
+#include <iomanip>// for output formatting
+#include <cctype>// for character handling functions (tolower)
+
+using namespace std;
+using namespace std::chrono; // fpr time measuring (used in time complexity)
+
+// to convert to titlecase for display purposes
+
+string toTitleCase(string str) {
+    if (str.empty()) return str;
+    str[0] = toupper(static_cast<unsigned char>(str[0]));
+    for (size_t i = 1; i < str.length(); ++i) {
+        str[i] = tolower(static_cast<unsigned char>(str[i]));
+    }
+    return str;
+}
+// to convert userinputs to lowercase for uniformity
+string toLowerCase(string str) {
+    for (char& c : str) {
+        c = tolower(static_cast<unsigned char>(c));
+    }
+    return str;
+}
+
+
+// making a class for songs to store their details and interactions and return values
+class song {
+private:
+    string songname;
+    string artistname;
+    string genre_name;
+    int plays = 0;
+    int likes = 0;
+
+public:
+    song(string name, string artist, string genre)
+        : songname(name), artistname(artist), genre_name(genre) {
+    }
+
+    string getSongName() const { return songname; }
+    string getArtist() const { return artistname; }
+    string getGenre() const { return genre_name; }
+    int getPlays() const { return plays; }
+    int getLikes() const { return likes; }
+
+    void incrementPlays() { plays++; }
+    void incrementLikes() { likes++; }
+};
+
+vector<song> allSongs; // stores all songs in the system (dynamically)
+
+
+// this class handles user management, friendships, and song interactions
+class users {
+private:
+    map<string, vector<pair<string, int>>> FriendGraph;
+    map<string, vector<string>> SongsListened;
+    map<string, vector<string>> SongsLiked;
+
+public:
+    void addUser(string inputUsername) {
+        string lower = toLowerCase(inputUsername);
+        string display = toTitleCase(inputUsername);
+        FriendGraph[lower];
+        SongsListened[lower];
+        SongsLiked[lower];
+        cout << "User '" << display << "' added successfully!\n";
+    }
+
+    void addFriend(string inputUser1, string inputUser2, int weight = 3) {
+        string lower1 = toLowerCase(inputUser1);
+        string lower2 = toLowerCase(inputUser2);
+        string display1 = toTitleCase(inputUser1);
+        string display2 = toTitleCase(inputUser2);
+
+        if (FriendGraph.count(lower1) && FriendGraph.count(lower2)) {
+            FriendGraph[lower1].emplace_back(lower2, weight);
+            FriendGraph[lower2].emplace_back(lower1, weight);
+            cout << "Added friendship: " << display1 << " <-> " << display2 << " (weight: " << weight << ")\n";
+        }
+        else {
+            cout << "Error: One or both users do not exist.\n";
+        }
+    }
+
+    void listenSong(string inputUsername, string inputSongName) {
+        string lowerUser = toLowerCase(inputUsername);
+        string lowerSong = toLowerCase(inputSongName);
+        string displayUser = toTitleCase(inputUsername);
+        string displaySong = "";
+
+        if (FriendGraph.count(lowerUser)) {
+            SongsListened[lowerUser].push_back(lowerSong);  // No limit during runtime
+
+            bool found = false;
+            for (auto& s : allSongs) {
+                if (toLowerCase(s.getSongName()) == lowerSong) {
+                    s.incrementPlays();
+                    displaySong = s.getSongName();
+                    found = true;
+                    break;
+                }
+            }
+            if (found) {
+                cout << displayUser << " listened to \"" << displaySong << "\"\n";
+            }
+            else {
+                cout << "Song not found.\n";
+            }
+        }
+    }
+	// deals with the liking of songs by users
+    void likeSong(string inputUsername, string inputSongName) {
+        string lowerUser = toLowerCase(inputUsername);
+        string lowerSong = toLowerCase(inputSongName);
+        string displayUser = toTitleCase(inputUsername);
+        string displaySong = "";
+
+        if (FriendGraph.count(lowerUser)) {
+            SongsLiked[lowerUser].push_back(lowerSong);  // No limit during runtime
+
+            bool found = false;
+            for (auto& s : allSongs) {
+                if (toLowerCase(s.getSongName()) == lowerSong) {
+                    s.incrementLikes();
+                    displaySong = s.getSongName();
+                    found = true;
+                    break;
+                }
+            }
+            if (found) {
+                cout << displayUser << " liked \"" << displaySong << "\"\n";
+            }
+            else {
+                cout << "Song not found.\n";
+            }
+        }
+    }
+	// displays a user's friends along with the closeness weight(used later in Dijskras)
+    void displayFriends(string inputUsername) const {
+        string lower = toLowerCase(inputUsername);
+        string display = toTitleCase(inputUsername);
+
+        auto it = FriendGraph.find(lower);
+        if (it != FriendGraph.end()) {
+            cout << "\n" << display << "'s Friends:\n";
+            for (const auto& p : it->second) {
+                string friendDisplay = toTitleCase(p.first);
+                cout << "- " << friendDisplay << " (weight: " << p.second << ")\n";
+            }
+        }
+        else {
+            cout << "User not found.\n";
+        }
+    }
+
+	// displays the songs listened by a user along with their genres
+    void displayUserPreferences(string inputUsername) const {
+        string lower = toLowerCase(inputUsername);
+        string display = toTitleCase(inputUsername);
+
+        auto it = SongsListened.find(lower);
+        if (it != SongsListened.end()) {
+            cout << "\n" << display << "'s Listened Songs:\n";
+            size_t i = 1;
+            for (const auto& lowerSong : it->second) {
+                string displaySong = "";
+                for (const auto& s : allSongs) {
+                    if (toLowerCase(s.getSongName()) == lowerSong) {
+                        displaySong = s.getSongName();
+                        break;
+                    }
+                }
+                cout << i++ << ". " << displaySong;
+                for (const auto& s : allSongs) {
+                    if (toLowerCase(s.getSongName()) == lowerSong) {
+                        cout << " [" << s.getGenre() << "]";
+                        break;
+                    }
+                }
+                cout << endl;
+            }
+        }
+    }
+
+    vector<string> getAvailableFriends(string inputUsername) const {
+        string lower = toLowerCase(inputUsername);
+        vector<string> available;
+        for (const auto& u : FriendGraph) {
+            string potentialLower = u.first;
+            string potentialDisplay = toTitleCase(potentialLower);
+            if (potentialLower == lower) continue;
+
+            bool isFriend = false;
+            auto friends = FriendGraph.at(lower);
+            for (const auto& f : friends) {
+                if (f.first == potentialLower) {
+                    isFriend = true;
+                    break;
+                }
+            }
+            if (!isFriend) {
+                available.push_back(potentialDisplay);
+            }
+        }
+        return available;
+    }
+
+    vector<string> getLikedGenres(string inputUsername) const {
+        string lower = toLowerCase(inputUsername);
+        vector<string> genres;
+        auto it = SongsLiked.find(lower);
+        if (it != SongsLiked.end()) {
+            for (const auto& lowerSong : it->second) {
+                for (const auto& s : allSongs) {
+                    if (toLowerCase(s.getSongName()) == lowerSong) {
+                        genres.push_back(s.getGenre());
+                        break;
+                    }
+                }
+            }
+        }
+        return genres;
+    }
+
+    const map<string, vector<pair<string, int>>>& getFriendGraph() const { return FriendGraph; }
+    const map<string, vector<string>>& getSongsListened() const { return SongsListened; }
+    const map<string, vector<string>>& getSongsLiked() const { return SongsLiked; }
+};
+
+
+// this class implements the three recommendation algorithms and trending songs 
+class Recommendation {
+private:
+    const users* userSystem;
+    priority_queue<pair<int, string>> trendingHeap;
+    unordered_map<string, int> songScores;
+
+    void updateTrendingHeap() {
+        while (!trendingHeap.empty()) trendingHeap.pop();
+        songScores.clear();
+        for (const auto& s : allSongs) {
+            int score = s.getPlays() + s.getLikes();
+            songScores[s.getSongName()] = score;
+            trendingHeap.push({ score, s.getSongName() });
+        }
+    }
+
+public:
+    Recommendation(const users* system) : userSystem(system) {}
+	// first recommendation algorithm used is BFS
+    void bfsRecommendations(const string& inputUsername, int hops = 1, int topN = 5) {
+        string username = toLowerCase(inputUsername);
+
+        const auto& friendGraph = userSystem->getFriendGraph();
+        const auto& songsListened = userSystem->getSongsListened();
+        const auto& songsLiked = userSystem->getSongsLiked();
+
+        unordered_map<string, int> songCount;
+        unordered_map<string, bool> visited;
+        queue<pair<string, int>> q;
+        q.push({ username, 0 });
+        visited[username] = true;
+
+        while (!q.empty()) {
+            pair<string, int> front = q.front(); q.pop();
+            string current = front.first;
+            int dist = front.second;
+
+            if (dist > hops) continue;
+            if (dist > 0) {
+                auto lit = songsListened.find(current);
+                if (lit != songsListened.end()) {
+                    for (const auto& song : lit->second) songCount[song]++;
+                }
+                auto kit = songsLiked.find(current);
+                if (kit != songsLiked.end()) {
+                    for (const auto& song : kit->second) songCount[song] += 2;
+                }
+            }
+
+            auto git = friendGraph.find(current);
+            if (git != friendGraph.end()) {
+                for (const auto& p : git->second) {
+                    string neighbor = p.first;
+                    if (!visited[neighbor]) {
+                        visited[neighbor] = true;
+                        q.push({ neighbor, dist + 1 });
+                    }
+                }
+            }
+        }
+
+        vector<pair<string, int>> recs(songCount.begin(), songCount.end());
+        sort(recs.begin(), recs.end(), [](const pair<string, int>& a, const pair<string, int>& b) {
+            return a.second > b.second;
+            });
+
+        cout << "\n=== BFS Recommendations for " << toTitleCase(inputUsername) << " (hops: " << hops << ") ===\n";
+        if (recs.empty()) {
+            cout << "No recommendations yet.\n";
+        }
+        else {
+            size_t limit = min(size_t(topN), recs.size());
+            for (size_t i = 0; i < limit; ++i) {
+                string displaySong = "";
+                for (const auto& s : allSongs) {
+                    if (toLowerCase(s.getSongName()) == recs[i].first) {
+                        displaySong = s.getSongName();
+                        break;
+                    }
+                }
+                cout << (i + 1) << ". " << displaySong << " (score: " << recs[i].second << ")\n";
+            }
+        }
+    }
+	// second recommendation algorithm used is DFS
+    void dfsRecommendations(const string& inputUsername, int maxDepth = 2, int topN = 5) {
+        string username = toLowerCase(inputUsername);
+
+        const auto& friendGraph = userSystem->getFriendGraph();
+        const auto& songsListened = userSystem->getSongsListened();
+        const auto& songsLiked = userSystem->getSongsLiked();
+
+        unordered_map<string, int> songCount;
+        unordered_map<string, bool> visited;
+        stack<pair<string, int>> stk;
+        stk.push({ username, 0 });
+        visited[username] = true;
+
+        while (!stk.empty()) {
+            pair<string, int> currentPair = stk.top();
+            string current = currentPair.first;
+            int depth = currentPair.second;
+
+            if (depth > 0 && depth <= maxDepth) {
+                auto lit = songsListened.find(current);
+                if (lit != songsListened.end()) {
+                    for (const auto& song : lit->second) songCount[song]++;
+                }
+                auto kit = songsLiked.find(current);
+                if (kit != songsLiked.end()) {
+                    for (const auto& song : kit->second) songCount[song] += 2;
+                }
+            }
+
+            bool pushed = false;
+            auto git = friendGraph.find(current);
+            if (git != friendGraph.end() && depth < maxDepth) {
+                for (const auto& p : git->second) {
+                    string neighbor = p.first;
+                    if (!visited[neighbor]) {
+                        visited[neighbor] = true;
+                        stk.push({ neighbor, depth + 1 });
+                        pushed = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!pushed) {
+                stk.pop();
+            }
+        }
+
+        vector<pair<string, int>> recs(songCount.begin(), songCount.end());
+        sort(recs.begin(), recs.end(), [](const pair<string, int>& a, const pair<string, int>& b) {
+            return a.second > b.second;
+            });
+
+        cout << "\n=== DFS Recommendations for " << toTitleCase(inputUsername) << " (max depth: " << maxDepth << ") ===\n";
+        if (recs.empty()) {
+            cout << "No recommendations yet.\n";
+        }
+        else {
+            size_t limit = min(size_t(topN), recs.size());
+            for (size_t i = 0; i < limit; ++i) {
+                string displaySong = "";
+                for (const auto& s : allSongs) {
+                    if (toLowerCase(s.getSongName()) == recs[i].first) {
+                        displaySong = s.getSongName();
+                        break;
+                    }
+                }
+                cout << (i + 1) << ". " << displaySong << " (score: " << recs[i].second << ")\n";
+            }
+        }
+    }
+	// third recommendation algorithm used is Dijkstra's algorithm
+    void dijkstraRecommendations(const string& inputUsername, int topN = 5) {
+        string username = toLowerCase(inputUsername);
+
+        const auto& friendGraph = userSystem->getFriendGraph();
+        const auto& songsListened = userSystem->getSongsListened();
+        const auto& songsLiked = userSystem->getSongsLiked();
+
+        vector<string> userGenres = userSystem->getLikedGenres(username);
+
+        priority_queue<pair<int, string>, vector<pair<int, string>>, greater<pair<int, string>>> pq;
+        unordered_map<string, int> dist;
+        unordered_map<string, double> songInfluence;
+
+        dist[username] = 0;
+        pq.push({ 0, username });
+
+        while (!pq.empty()) {
+            pair<int, string> front = pq.top(); pq.pop();
+            int cost = front.first;
+            string current = front.second;
+
+            if (dist.find(current) != dist.end() && cost > dist[current]) continue;
+
+            if (cost > 0) {
+                vector<string> friendGenres = userSystem->getLikedGenres(current);
+
+                int commonGenres = 0;
+                for (const auto& g : friendGenres) {
+                    for (const auto& ug : userGenres) {
+                        if (g == ug) {
+                            commonGenres++;
+                            break;
+                        }
+                    }
+                }
+                double genreSimilarity = (friendGenres.empty() ? 0.5 : static_cast<double>(commonGenres) / friendGenres.size());
+                double influence = genreSimilarity / (cost + 1.0);
+
+                auto lit = songsListened.find(current);
+                if (lit != songsListened.end()) {
+                    for (const auto& song : lit->second) {
+                        songInfluence[song] += influence;
+                    }
+                }
+                auto kit = songsLiked.find(current);
+                if (kit != songsLiked.end()) {
+                    for (const auto& song : kit->second) {
+                        songInfluence[song] += 2 * influence;
+                    }
+                }
+            }
+
+            auto git = friendGraph.find(current);
+            if (git != friendGraph.end()) {
+                for (const auto& p : git->second) {
+                    string neighbor = p.first;
+                    int weight = p.second;
+                    int newDist = cost + weight;
+                    if (dist.find(neighbor) == dist.end() || newDist < dist[neighbor]) {
+                        dist[neighbor] = newDist;
+                        pq.push({ newDist, neighbor });
+                    }
+                }
+            }
+        }
+
+        vector<pair<string, double>> recs(songInfluence.begin(), songInfluence.end());
+        sort(recs.begin(), recs.end(), [](const pair<string, double>& a, const pair<string, double>& b) {
+            return a.second > b.second;
+            });
+
+        cout << "\n=== Dijkstra Genre-Similarity Weighted Recommendations for " << toTitleCase(inputUsername) << " ===\n";
+        if (recs.empty()) {
+            cout << "No recommendations yet.\n";
+        }
+        else {
+            size_t limit = min(size_t(topN), recs.size());
+            for (size_t i = 0; i < limit; ++i) {
+                string displaySong = "";
+                for (const auto& s : allSongs) {
+                    if (toLowerCase(s.getSongName()) == recs[i].first) {
+                        displaySong = s.getSongName();
+                        break;
+                    }
+                }
+                cout << fixed << setprecision(3);
+                cout << (i + 1) << ". " << displaySong << " (influence: " << recs[i].second << ")\n";
+            }
+        }
+    }
+
+    void trendingRecommendations(int topN = 5) {
+        updateTrendingHeap();
+        cout << "\n=== Global Trending Songs (Top " << topN << ") ===\n";
+        priority_queue<pair<int, string>> temp = trendingHeap;
+        int count = 0;
+        while (!temp.empty() && count < topN) {
+            pair<int, string> item = temp.top(); temp.pop();
+            cout << (count + 1) << ". " << item.second << " (score: " << item.first << ")\n";
+            ++count;
+        }
+        if (count == 0) cout << "No trending songs yet.\n";
+    }
+};
+// predefining songs for the system based on the genre and the artist
+
+void initializeSongs() {
+    allSongs.emplace_back("Biba Sada Dil Morh De", "Nusrat Fateh Ali Khan", "Classic");
+    allSongs.emplace_back("Akhian Udeek Diyan", "Rahat Fateh Ali Khan", "Classic");
+    allSongs.emplace_back("Sanu Ek Pal Chain", "Rahat Fateh Ali Khan", "Classic");
+    allSongs.emplace_back("Mere Rashke Qamar", "Rahat Fateh Ali Khan", "Classic");
+    allSongs.emplace_back("Afreen Afreen", "Rahat Fateh Ali Khan", "Classic");
+    allSongs.emplace_back("Dillagi", "Rahat Fateh Ali Khan", "Classic");
+    allSongs.emplace_back("Tumhe Dillagi", "Rahat Fateh Ali Khan", "Classic");
+    allSongs.emplace_back("Woh Raat", "Havi", "Classic");
+    allSongs.emplace_back("Khabar", "Twin Strings", "Classic");
+
+    allSongs.emplace_back("Nazar E Karam", "Havi", "Pop");
+    allSongs.emplace_back("Bhool", "Murtaza Qizilbash", "Pop");
+    allSongs.emplace_back("Jhol", "Maanu", "Pop");
+    allSongs.emplace_back("Ek Tarfa", "Darshan Raval", "Pop");
+    allSongs.emplace_back("To Phr Aao", "Mustafa Zahid", "Pop");
+    allSongs.emplace_back("Hum", "Murtaza Qizilbash", "Pop");
+    allSongs.emplace_back("Tenu Khabar Nahi", "Arijit Singh", "Pop");
+    allSongs.emplace_back("Aadat", "Atif Aslam", "Pop");
+    allSongs.emplace_back("Woh Lamhe", "Atif Aslam", "Pop");
+    allSongs.emplace_back("Doorie", "Atif Aslam", "Pop");
+    allSongs.emplace_back("Tere Bin", "Atif Aslam", "Pop");
+    allSongs.emplace_back("Jeena Jeena", "Atif Aslam", "Pop");
+
+    allSongs.emplace_back("Rung", "Havi", "RnB");
+    allSongs.emplace_back("Pi Jaon", "Farhan Saeed", "RnB");
+    allSongs.emplace_back("O Re Piya", "Rahat Fateh Ali Khan", "RnB");
+    allSongs.emplace_back("Zindagi", "Atif Aslam", "RnB");
+
+    allSongs.emplace_back("Shayad", "Call", "Rock");
+    allSongs.emplace_back("Mera Bichra Yar", "Strings", "Rock");
+    allSongs.emplace_back("Sajni", "Farhan Saeed", "Rock");
+    allSongs.emplace_back("Tera Woh Pyar", "Atif Aslam", "Rock");
+    allSongs.emplace_back("Tere Ishq Mein", "Asim Azhar", "Rock");
+    allSongs.emplace_back("Duur", "Strings", "Rock");
+}
+// adding users in the system along with their friendships and friendship weightages
+//later used in Dijkstra's algorithm
+void initializeUsers(users& system) {
+    system.addUser("Iffat");
+    system.addUser("Ayesha");
+    system.addUser("Haram");
+    system.addUser("Isra");
+    system.addUser("Abid");
+    system.addUser("Ali");
+    system.addUser("Hameed");
+    system.addUser("Tania");
+    system.addUser("Arooba");
+    system.addUser("Zeeshan");
+
+    system.addFriend("Iffat", "Ayesha", 1);
+    system.addFriend("Iffat", "Isra", 2);
+
+    system.addFriend("Ayesha", "Haram", 2);
+    system.addFriend("Ayesha", "Tania", 3);
+
+    system.addFriend("Haram", "Abid", 2);
+    system.addFriend("Haram", "Ali", 3);
+
+    system.addFriend("Isra", "Arooba", 1);
+    system.addFriend("Isra", "Zeeshan", 3);
+
+    system.addFriend("Abid", "Hameed", 2);
+    system.addFriend("Ali", "Tania", 2);
+
+    // Initial data: max 5 listened, max 3 liked per user
+    // (used only to initialized past histoery of likes and listenings) 
+
+	// for Iffat
+    system.listenSong("Iffat", "Nazar E Karam");
+    system.listenSong("Iffat", "Rung");
+    system.listenSong("Iffat", "Bhool");
+    system.listenSong("Iffat", "Jhol");
+    system.listenSong("Iffat", "Woh Raat");
+    system.likeSong("Iffat", "Rung");
+    system.likeSong("Iffat", "Nazar E Karam");
+    system.likeSong("Iffat", "Bhool");
+	// for Ayesha
+    system.listenSong("Ayesha", "Shayad");
+    system.listenSong("Ayesha", "Mera Bichra Yar");
+    system.listenSong("Ayesha", "Sajni");
+    system.listenSong("Ayesha", "Ek Tarfa");
+    system.listenSong("Ayesha", "Tenu Khabar Nahi");
+    system.likeSong("Ayesha", "Sajni");
+    system.likeSong("Ayesha", "Tenu Khabar Nahi");
+    system.likeSong("Ayesha", "Ek Tarfa");
+	//  for Haram
+    system.listenSong("Haram", "Nazar E Karam");
+    system.listenSong("Haram", "Jhol");
+    system.listenSong("Haram", "To Phr Aao");
+    system.listenSong("Haram", "Hum");
+    system.listenSong("Haram", "Ek Tarfa");
+    system.likeSong("Haram", "Jhol");
+    system.likeSong("Haram", "Nazar E Karam");
+    system.likeSong("Haram", "Hum");
+	// for Isra
+    system.listenSong("Isra", "Rung");
+    system.listenSong("Isra", "Pi Jaon");
+    system.listenSong("Isra", "Mera Bichra Yar");
+    system.listenSong("Isra", "Sajni");
+    system.listenSong("Isra", "Biba Sada Dil Morh De");
+    system.likeSong("Isra", "Biba Sada Dil Morh De");
+    system.likeSong("Isra", "Pi Jaon");
+    system.likeSong("Isra", "Sajni");
+	// for Abid
+    system.listenSong("Abid", "Aadat");
+    system.listenSong("Abid", "Woh Lamhe");
+    system.listenSong("Abid", "Doorie");
+    system.listenSong("Abid", "Tere Bin");
+    system.listenSong("Abid", "Jeena Jeena");
+    system.likeSong("Abid", "Aadat");
+    system.likeSong("Abid", "Tere Bin");
+    system.likeSong("Abid", "Jeena Jeena");
+	// for Ali
+    system.listenSong("Ali", "Dil Diyan Gallan");
+    system.listenSong("Ali", "Pehli Nazar Mein");
+    system.listenSong("Ali", "O Re Piya");
+    system.listenSong("Ali", "Zindagi");
+    system.listenSong("Ali", "Tera Woh Pyar");
+    system.likeSong("Ali", "Dil Diyan Gallan");
+    system.likeSong("Ali", "O Re Piya");
+    system.likeSong("Ali", "Zindagi");
+	//  for Hameed
+    system.listenSong("Hameed", "Tere Ishq Mein");
+    system.listenSong("Hameed", "Duur");
+    system.listenSong("Hameed", "Akhian Udeek Diyan");
+    system.listenSong("Hameed", "Sanu Ek Pal Chain");
+    system.listenSong("Hameed", "Mere Rashke Qamar");
+    system.likeSong("Hameed", "Mere Rashke Qamar");
+    system.likeSong("Hameed", "Sanu Ek Pal Chain");
+    system.likeSong("Hameed", "Akhian Udeek Diyan");
+	// for Tania
+    system.listenSong("Tania", "Afreen Afreen");
+    system.listenSong("Tania", "Dillagi");
+    system.listenSong("Tania", "Tumhe Dillagi");
+    system.listenSong("Tania", "Nazar E Karam");
+    system.listenSong("Tania", "Rung");
+    system.likeSong("Tania", "Afreen Afreen");
+    system.likeSong("Tania", "Dillagi");
+    system.likeSong("Tania", "Tumhe Dillagi");
+	// for Arooba
+    system.listenSong("Arooba", "Bhool");
+    system.listenSong("Arooba", "Jhol");
+    system.listenSong("Arooba", "Ek Tarfa");
+    system.listenSong("Arooba", "To Phr Aao");
+    system.listenSong("Arooba", "Hum");
+    system.likeSong("Arooba", "Ek Tarfa");
+    system.likeSong("Arooba", "To Phr Aao");
+    system.likeSong("Arooba", "Hum");
+	// for Zeeshan
+    system.listenSong("Zeeshan", "Tenu Khabar Nahi");
+    system.listenSong("Zeeshan", "Shayad");
+    system.listenSong("Zeeshan", "Mera Bichra Yar");
+    system.listenSong("Zeeshan", "Sajni");
+    system.listenSong("Zeeshan", "Biba Sada Dil Morh De");
+    system.likeSong("Zeeshan", "Tenu Khabar Nahi");
+    system.likeSong("Zeeshan", "Sajni");
+    system.likeSong("Zeeshan", "Biba Sada Dil Morh De");
+}
+
+
+
+int main() {
+
+	// Welcome message/ interfacing
+    cout << "===========================================================================\n";
+    cout << "\n\nWELCOME TO BFSBEATS: A SOCIAL SONG RECOMMENDATION SYSTEM\n\n";
+    cout << "===========================================================================\n";
+
+	// Initializing songs and users
+    initializeSongs();
+    users system;
+    initializeUsers(system);
+    Recommendation rec(&system);
+
+    int choice;
+    string input;
+	// using a do while to carry out the menu operations until user wants to exit
+	// the exiting condition used is choice 12
+    do {
+        cout << "\n--- MENU ---\n";
+        cout << "1. Display Friends\n";
+        cout << "2. Display Listened Songs\n";
+        cout << "3. Add Friend\n";
+        cout << "4. Listen to Song\n";
+        cout << "5. Like Song\n";
+        cout << "6. BFS Recommendations\n";
+        cout << "7. DFS Recommendations\n";
+        cout << "8. Dijkstra Recommendations\n";
+        cout << "9. Global Trending Songs\n";
+        cout << "10. Add New User\n";
+        cout << "11. Compare All Three Algorithms (BFS, DFS, Dijkstra)\n";
+        cout << "12. Exit\n";
+        cout << "Choice: ";
+        cin >> choice;
+        cin.ignore();
+
+        if (choice == 12) break;
+
+        if (choice == 10) {
+            cout << "Enter new username: ";
+            getline(cin, input);
+            system.addUser(input);
+            continue;
+        }
+
+        string username;
+        cout << "Enter username: ";
+        getline(cin, username);
+
+		// a switch case to handle the menu choices as inputted by the user
+
+        switch (choice) {
+        case 1: system.displayFriends(username); break;
+        case 2: system.displayUserPreferences(username); break;
+        case 3: {
+            cout << "\nAvailable users to add as friend:\n";
+            vector<string> available = system.getAvailableFriends(username);
+            if (available.empty()) {
+                cout << "No more users available.\n";
+            }
+            else {
+                for (const auto& u : available) {
+                    cout << "- " << u << endl;
+                }
+            }
+            string friendName;
+            int weight;
+            cout << "Enter friend username: ";
+            getline(cin, friendName);
+            cout << "Enter closeness weight (1=very close, 5=distant): ";
+            cin >> weight;
+            cin.ignore();
+            system.addFriend(username, friendName, weight);
+            break;
+        }
+        case 4: {
+            cout << "Enter song name: ";
+            getline(cin, input);
+            system.listenSong(username, input);
+            break;
+        }
+        case 5: {
+            cout << "Enter song name: ";
+            getline(cin, input);
+            system.likeSong(username, input);
+            break;
+        }
+        case 6: {
+            int hops = 2;
+            auto start = high_resolution_clock::now();
+            rec.bfsRecommendations(username, hops);
+            auto stop = high_resolution_clock::now();
+            auto duration = duration_cast<microseconds>(stop - start);
+            cout << "\nTime taken (BFS): " << duration.count() << " microseconds\n";
+            break;
+        }
+        case 7: {
+            int depth = 2;
+            auto start = high_resolution_clock::now();
+            rec.dfsRecommendations(username, depth);
+            auto stop = high_resolution_clock::now();
+            auto duration = duration_cast<microseconds>(stop - start);
+            cout << "\nTime taken (DFS): " << duration.count() << " microseconds\n";
+            break;
+        }
+        case 8: {
+            auto start = high_resolution_clock::now();
+            rec.dijkstraRecommendations(username);
+            auto stop = high_resolution_clock::now();
+            auto duration = duration_cast<microseconds>(stop - start);
+            cout << "\nTime taken (Dijkstra): " << duration.count() << " microseconds\n";
+            break;
+        }
+        case 9: {
+            auto start = high_resolution_clock::now();
+            rec.trendingRecommendations(10);
+            auto stop = high_resolution_clock::now();
+            auto duration = duration_cast<microseconds>(stop - start);
+            cout << "\nTime taken (Trending): " << duration.count() << " microseconds\n";
+            break;
+        }
+        case 11: {
+            int hops = 2;
+            int depth = 2;
+
+            auto start_bfs = high_resolution_clock::now();
+            rec.bfsRecommendations(username, hops);
+            auto stop_bfs = high_resolution_clock::now();
+            auto bfs_time = duration_cast<microseconds>(stop_bfs - start_bfs).count();
+
+            auto start_dfs = high_resolution_clock::now();
+            rec.dfsRecommendations(username, depth);
+            auto stop_dfs = high_resolution_clock::now();
+            auto dfs_time = duration_cast<microseconds>(stop_dfs - start_dfs).count();
+
+            auto start_dijk = high_resolution_clock::now();
+            rec.dijkstraRecommendations(username);
+            auto stop_dijk = high_resolution_clock::now();
+            auto dijk_time = duration_cast<microseconds>(stop_dijk - start_dijk).count();
+
+            cout << "\n=== TIME COMPLEXITY COMPARISON (in microseconds) ===\n";
+            cout << "BFS Recommendations:      " << bfs_time << " us\n";
+            cout << "DFS Recommendations:      " << dfs_time << " us\n";
+            cout << "Dijkstra Recommendations: " << dijk_time << " us\n";
+            break;
+        }
+        
+
+		default: cout << "Invalid choice!\n"; // if a user inputs choice >> 12 or any invalid number(-ve or 0)
+        }
+    } while (true);
+
+    cout << "\nShutting down BFSBeats!\n"; //goodbye message
+    return 0;
+}
