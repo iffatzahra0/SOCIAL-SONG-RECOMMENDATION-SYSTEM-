@@ -36,18 +36,18 @@ The system models users as nodes in a graph and friendships as weighted edges, u
 
 ---
 
-### 🔍 Recommendation Algorithms
+## 🔍 Recommendation Algorithms
 
-#### 1️⃣ BFS Recommendations
+### 1️⃣ BFS Recommendations
 - Recommends songs from nearby friends (hop-based)
 - Likes carry more weight than listens
 - Best for discovering popular songs among close friends
 
-#### 2️⃣ DFS Recommendations
+### 2️⃣ DFS Recommendations
 - Explores deeper friendship chains
 - Useful for discovering niche or less obvious preferences
 
-#### 3️⃣ Dijkstra-Based Recommendations
+### 3️⃣ Dijkstra-Based Recommendations
 - Uses friendship weights (closeness)
 - Incorporates **genre similarity**
 - Influence decreases with social distance
@@ -55,7 +55,7 @@ The system models users as nodes in a graph and friendships as weighted edges, u
 
 ---
 
-### 🔥 Global Trending Songs
+## 🔥 Global Trending Songs
 - Uses a **priority queue**
 - Ranks songs based on total likes + plays
 - Shows top-N trending tracks across the platform
