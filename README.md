@@ -1,108 +1,88 @@
-🎵 BFSBEATS – A Social Song Recommendation System
+# 🎵 BFSBEATS – A Social Song Recommendation System
 
-BFSBEATS is a C++ Data Structures & Algorithms project that simulates a social music platform where users discover songs based on their friends’ listening behavior. The system leverages graph traversal and shortest-path algorithms to generate intelligent, personalized recommendations.
+**BFSBEATS** is a **C++ Data Structures & Algorithms project** that simulates a social music recommendation platform.  
+The system models users as nodes in a graph and friendships as weighted edges, using classic graph algorithms to recommend songs based on social proximity, preferences, and genre similarity.
 
-📌 Project Overview
+---
 
-Users are represented as nodes in a graph
+## 📌 Project Overview
 
-Friendships act as bidirectional weighted edges (closeness-based)
+- Users are represented as **nodes**
+- Friendships are **bidirectional weighted edges**
+- Songs are recommended using:
+  - **Breadth-First Search (BFS)**
+  - **Depth-First Search (DFS)**
+  - **Dijkstra’s Algorithm**
+- A **global trending system** ranks songs based on popularity
+- Algorithm execution time is measured for performance comparison
 
-Songs are recommended using:
+---
 
-BFS (Breadth-First Search) – proximity-based discovery
+## ⚙️ Features
 
-DFS (Depth-First Search) – deeper social exploration
+### 👥 User & Social Graph Management
+- Add new users dynamically
+- Create friendships with closeness weights
+- Display friend lists and social connections
+- Case-insensitive input handling with formatted output
 
-Dijkstra’s Algorithm – genre similarity + friendship weight optimization
+---
 
-A global trending system ranks songs using likes and play counts
+### 🎶 Song Interaction System
+- Listen to songs (increments play count)
+- Like songs (higher recommendation influence)
+- Genre-based song categorization
+- User listening and liking history tracking
 
-⚙️ Core Features
-👥 User & Social Graph Management
+---
 
-Add users dynamically
+### 🔍 Recommendation Algorithms
 
-Create bidirectional friendships with custom closeness weights
+#### 1️⃣ BFS Recommendations
+- Recommends songs from nearby friends (hop-based)
+- Likes carry more weight than listens
+- Best for discovering popular songs among close friends
 
-View friend lists and user preferences
+#### 2️⃣ DFS Recommendations
+- Explores deeper friendship chains
+- Useful for discovering niche or less obvious preferences
 
-🎶 Song Interaction System
+#### 3️⃣ Dijkstra-Based Recommendations
+- Uses friendship weights (closeness)
+- Incorporates **genre similarity**
+- Influence decreases with social distance
+- Produces the most personalized recommendations
 
-Listen to songs (increments play count)
+---
 
-Like songs (higher recommendation weight)
+### 🔥 Global Trending Songs
+- Uses a **priority queue**
+- Ranks songs based on total likes + plays
+- Shows top-N trending tracks across the platform
 
-Genre-aware song storage
+---
 
-Case-insensitive input handling
+## ⏱ Performance Analysis
 
-🔍 Recommendation Algorithms
+- Execution time measured using `std::chrono`
+- BFS, DFS, and Dijkstra compared side-by-side
+- Demonstrates real-world efficiency differences between algorithms
 
-BFS Recommendations
+---
 
-Suggests songs from nearby friends (hop-based)
+## 🧠 Data Structures Used
 
-Likes weighted more than listens
+- `vector`
+- `map`, `unordered_map`
+- `queue`
+- `stack`
+- `priority_queue`
+- Graphs implemented via adjacency lists
 
-DFS Recommendations
+---
 
-Explores deeper friend connections
+## 🚀 How to Run
 
-Useful for discovering niche preferences
-
-Dijkstra-Based Recommendations
-
-Uses friendship weights + genre similarity
-
-Influence decreases with social distance
-
-Most personalized and optimized approach
-
-Trending Songs
-
-Global ranking using priority queues
-
-Based on total likes + plays
-
-⏱ Performance Analysis
-
-Execution time measured using std::chrono
-
-Side-by-side comparison of BFS, DFS, and Dijkstra
-
-Demonstrates real-world efficiency differences between algorithms
-
-🧠 Data Structures Used
-
-map, unordered_map
-
-vector
-
-queue, stack
-
-priority_queue
-
-Graph representations via adjacency lists
-
-🚀 How to Run
-
-Compile using a C++ compiler (C++11 or later):
-
+### Compile
+```bash
 g++ bfsbeats.cpp -o bfsbeats
-
-
-Run:
-
-./bfsbeats
-
-
-Use the interactive menu to explore features
-
-👩‍💻 Contributors
-
-Iffat Zahra (501970)
-
-Ayesha Ghafoor (522175)
-
-Haram Chishti (503090)
