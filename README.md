@@ -84,3 +84,6 @@ The system models users as nodes in a graph and friendships as weighted edges, u
 ## 🚀 How to Run
 
 - to run code use Microsoft Visual Studio.
+
+##Group Partner
+- @ash_001
