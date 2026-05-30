@@ -85,5 +85,5 @@ The system models users as nodes in a graph and friendships as weighted edges, u
 
 - to run code use Microsoft Visual Studio.
 
-##Group Partner
+## Group Partner
 - [Ayesha Ghafoor](https://github.com/ayesha-a-ghafoor)
