@@ -87,3 +87,4 @@ The system models users as nodes in a graph and friendships as weighted edges, u
 
 ## Group Partner
 - [Ayesha Ghafoor](https://github.com/ayesha-a-ghafoor)
+- [Haram Chishti](https://github.com/HaramChishti)
